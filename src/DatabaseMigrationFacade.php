@@ -35,6 +35,7 @@ class DatabaseMigrationFacade implements IDatabaseMigrator {
 
 		$settings = $this->getSettings();
 
+		// TODO more DI here
 		$service = new MigrationService( $settings );
 		$service->migrate( $folder );
 	}
@@ -42,7 +43,6 @@ class DatabaseMigrationFacade implements IDatabaseMigrator {
 	public function migrateModules() {
 
 		// TODO: Implement migrateProject() method.
-
 	}
 
 	public function createMigration($type, $hint) {
@@ -90,6 +90,7 @@ class DatabaseMigrationFacade implements IDatabaseMigrator {
 
 		$settings = $this->getSettings();
 
+		// TODO more DI here
 		$service = new MigrationService( $settings );
 		$service->checkSQLs( $migrationFolder );
 

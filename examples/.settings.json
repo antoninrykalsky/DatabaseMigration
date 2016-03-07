@@ -1,0 +1,4 @@
+{
+	"name": "softwarestudio/mynewproject.cz",
+	"load": "app/bootstrap.php"
+}

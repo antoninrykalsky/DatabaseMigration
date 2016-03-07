@@ -8,6 +8,8 @@
 
 namespace SoftwareStudio\DatabaseMigration;
 
+use SoftwareStudio\DatabaseMigration\connectors\DibiConnector;
+use SoftwareStudio\DatabaseMigration\connectors\IConnector;
 use SoftwareStudio\DatabaseMigration\utils\SXtringUXtils as StringUtils;
 use SoftwareStudio\DatabaseMigration\entity\MigrationItem;
 use SoftwareStudio\DatabaseMigration\utils\MigrationSqlUtils;
@@ -18,6 +20,9 @@ class MigrationService {
 
 	private $settings;
 
+	/** @var IConnector */
+	private $dbConnector;
+
 	/**
 	 * MigrationService constructor.
 	 */
@@ -25,83 +30,44 @@ class MigrationService {
 		$this->settings = $settings;
 	}
 
-
-
+	/**
+	 * Execute migration for given folder.
+	 *
+	 * @param \SplFileInfo $migrationFolder
+	 */
 	public function migrate(\SplFileInfo $migrationFolder ) {
 
-		$lastMigration=0;
-
-		if( !empty($this->settings->load) && file_exists(($this->settings->load))) {
-
-			// we are functional app wired
-			require_once $this->settings->load;
-
-			$rs = dibi::query("select version from mlmsoft_modules where id=-1");
-
-			$lastMigration = $rs->fetchSingle();
-			$lastMigration = (!is_numeric($lastMigration) ? 0 : $lastMigration);
+		// TODO better handling with setting .. you do not need to bring piano when you forgot a cigar on it.
+		if( empty($this->settings->load) || file_exists(($this->settings->load))) {
+			throw new MigrationException("Database migration expect connected dibi at first version");
 		}
 
-		$filesToMigrate = MigrationUtils::getFilesToMigrate( $migrationFolder, $lastMigration );
+		// we are functional app wired
+		require_once $this->settings->load;
 
-		/* @var MigrationItem $file */
-		foreach( $filesToMigrate as $migrationItem ) {
+		$this->dbConnector = new DibiConnector();
 
-			$this->doMigration($migrationItem);
+		$lastMigration = $this->dbConnector->getProjectModuleVersion();
+
+		$migrationItems = MigrationUtils::getMigrationItems( $migrationFolder, $lastMigration );
+
+		/* @var MigrationItem $item */
+		foreach( $migrationItems as $item ) {
+
+			DatabaseMigrationFacade::log(StringUtils::message("Doing migration for [{}] / [{}]", $item->getOrderNumber(), $item->getFile()->getFilename() ));
+
+			$this->dbConnector->executeMigration( $item );
 		}
 	}
 
-	private function doMigration( MigrationItem $item ) {
+	/**
+	 * Checks migration files of given folder.
+	 *
+	 * @param \SplFileInfo $migrationFolder
+	 */
+	public function checkSQLs(\SplFileInfo $migrationFolder ) {
 
-
-
-		DatabaseMigrationFacade::log(StringUtils::message("Doing migration for [{}] / [{}]", $item->getOrderNumber(), $item->getFile()->getFilename() ));
-
-		$content = file_get_contents($item->getFile()->getRealPath());
-
-		if( empty($content)) {
-			throw new MigrationException("Content is empty.");
-		}
-
-		$bom_debug=false;
-		if( $bom_debug ) {
-			echo $content;exit;
-		}
-
-		dibi::begin();
-
-		try {
-
-			dibi::nativeQuery($content);
-//			dibi::loadFile($item->getFile()->getRealPath());
-
-			DatabaseMigrationFacade::log(StringUtils::message("- migration ok" ));
-
-			// update last exec number
-			if( $item->getOrderNumber() == 1 ) {
-				dibi::query("insert into mlmsoft_modules values(-1, %i, 1)", $item->getOrderNumber());
-			} else {
-				dibi::query("update mlmsoft_modules set version=%i where id=-1", $item->getOrderNumber());
-			}
-
-		} catch( \DibiException $e ) {
-
-			$verbose = false;
-
-			if( $verbose) {
-				throw new MigrationException(StringUtils::message("- migration of [{}] failed \n\n {}", $item->getFile()->getFilename(), $e->getTraceAsString() ));
-			} else {
-				throw new MigrationException(StringUtils::message("- migration of [{}] failed \n\n {}", $item->getFile()->getFilename(), $e->getMessage() ));
-			}
-		}
-
-		dibi::commit();
-
-	}
-
-	public function checkSQLs(\SplFileInfo $migrationFolder, $wrongs ) {
-
-		$filesToMigrate = MigrationUtils::getFilesToMigrate( $migrationFolder, 0 );
+		$filesToMigrate = MigrationUtils::getMigrationItems( $migrationFolder, 0 );
 
 		$wrongs = [];
 
@@ -121,8 +87,7 @@ class MigrationService {
 			}
 		}
 
-		throw new MigrationException( implode('\n', $wrongs ));
+		// pass all errors at once
+		throw new MigrationException(implode('\n', $wrongs));
 	}
-
-
 }

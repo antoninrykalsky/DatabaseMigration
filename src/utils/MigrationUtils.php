@@ -21,7 +21,7 @@ class MigrationUtils {
 	 * @param \SplFileInfo $migrationFolder
 	 * @param int $lastMigration
 	 */
-	public static function getFilesToMigrate(\SplFileInfo $migrationFolder, $lastMigration=0 ) {
+	public static function getMigrationItems(\SplFileInfo $migrationFolder, $lastMigration=0 ) {
 
 		$filesToMigrate=[];
 

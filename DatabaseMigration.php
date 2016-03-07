@@ -11,6 +11,7 @@ require __DIR__ . '/src/MigrationException.php';
 require __DIR__ . '/src/MigrationService.php';
 require __DIR__ . '/src/builder/MigrationBuilder.php';
 require __DIR__ . '/src/entity/MigrationItem.php';
+require __DIR__ . '/src/utils/SXtringUXtils.php';
 require __DIR__ . '/src/utils/MigrationSqlUtils.php';
 require __DIR__ . '/src/utils/MigrationUtils.php';
 require __DIR__ . '/src/DatabaseMigrationFacade.php';
