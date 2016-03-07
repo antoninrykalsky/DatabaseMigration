@@ -1,0 +1,10 @@
+{
+    "name": "softwarestudio/DatabaseMigration",
+    "description" : "Database migration tool",
+	"autoload": {
+		"psr-4": {
+			"SoftwareStudio\\DatabaseMigration\\": "src"
+		}
+    },
+	"bin": ["databaseMigration"]
+}
